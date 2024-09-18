@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Live Football Scores</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        .container {
+            width: 80%;
+            max-width: 800px;
+            background-color: #ffffff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            box-sizing: border-box;
+            text-align: center;
+            max-height: 80vh; /* Limit the height of the container */
+            overflow-y: auto; /* Enable vertical scrolling */
+        }
+
+        h1 {
+            color: #333333;
+            margin-bottom: 20px;
+        }
+
+        #scores-list {
+            list-style-type: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        #scores-list li {
+            background-color: #ffffff;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 10px 0;
+            font-size: 24px;
+            color: #333333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s;
+        }
+
+        #scores-list li:nth-child(odd) {
+            background-color: #f9f9f9;
+        }
+
+        #scores-list li:hover {
+            background-color: #eaeaea;
+        }
+
+        .score {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+
+        .timer {
+            font-style: italic;
+        }
+
+        .timer-present {
+            color: darkgreen; /* Color for existing timer */
+        }
+
+        .timer-FT {
+            color: grey; /* Color for Full Time */
+        }
+
+        .timer-no-time {
+            color: grey; /* Color for No Timer */
+        }
+
+        .score-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .score-item .timer {
+            margin-top: 5px;
+        }
+    </style>
+    <script>
+        let socket;
+
+        function extractTimer(input) {
+            const regex = /\((\d+)'?\)/;
+            const match = input.match(regex);
+
+            if (match) {
+                return match[1];
+            } else {
+                return "No Timer";
+            }
+        }
+
+        function removeParentheses(input) {
+            // Replace parentheses and their content with an empty string
+            return input.replace(/\s*\(.*?\)/g, '').trim();
+        }
+
+        function connect() {
+            socket = new WebSocket("ws://localhost:8080/ws/scores");
+
+            socket.onmessage = function (event) {
+                const scoreList = document.getElementById("scores-list");
+                scoreList.innerHTML = ''; // Clear old scores
+
+                const scores = event.data.split("\n");
+                scores.forEach(score => {
+                    if (score.trim() === "") return; // Skip empty lines
+                    const [scoreDetails, timer] = score.split(" | ");
+
+                    // Remove parentheses and single quotes from timer
+                    const formattedTimer = extractTimer(scoreDetails);
+
+
+                    // Determine the appropriate class based on the timer value
+                    let timerClass = 'timer-no-time'; // Default class
+                    if (formattedTimer === 'No Timer') {
+                        timerClass = 'timer-no-time';
+                    } else if (formattedTimer === 'FT') {
+                        timerClass = 'timer-FT';
+                    } else {
+                        timerClass = 'timer-present';
+                    }
+
+                    const li = document.createElement("li");
+                    li.classList.add("score-item");
+                    li.innerHTML = `
+                        <div class="score">${removeParentheses(scoreDetails)}</div>
+                        <div class="timer ${timerClass}">${formattedTimer}</div>
+                    `;
+                    scoreList.appendChild(li);
+                });
+            };
+
+            socket.onerror = function (error) {
+                console.error("WebSocket error:", error);
+            };
+
+            socket.onclose = function () {
+                console.log("WebSocket connection closed");
+            };
+        }
+
+        window.onload = connect;
+    </script>
+</head>
+<body>
+<div class="container">
+    <h1>Live Football Scores</h1>
+    <ul id="scores-list">
+        <!-- Scores will be displayed here -->
+    </ul>
+</div>
+</body>
+</html>
