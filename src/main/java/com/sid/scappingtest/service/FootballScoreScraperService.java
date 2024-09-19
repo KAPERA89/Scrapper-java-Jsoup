@@ -37,7 +37,7 @@ public class FootballScoreScraperService {
         return scores;
     }
 
-    @Scheduled(fixedRate = 1000) // Scrape every minute
+    @Scheduled(fixedRate = 1000)
     public void scrapeAndPushScores() {
         try {
             List<String> liveScores = getLiveScores();
